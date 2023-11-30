@@ -18,7 +18,16 @@ locals {
       hostname = null
     }]
   )
-  volumes = concat([var.volume_id], [for volume in var.data_volumes: volume.id])
+  disks = concat(
+    [{
+      volume_id = var.volume_id
+      block_device = null
+    }], 
+    [for disk in var.data_disks: {
+      volume_id = disk.volume_id
+      block_device = disk.block_device
+    }]
+  )
   fluentbit_updater_etcd = var.fluentbit.enabled && var.fluentbit_dynamic_config.enabled && var.fluentbit_dynamic_config.source == "etcd"
   fluentbit_updater_git = var.fluentbit.enabled && var.fluentbit_dynamic_config.enabled && var.fluentbit_dynamic_config.source == "git"
 }
@@ -153,11 +162,11 @@ module "fluentbit_configs" {
 
 module "data_volume_configs" {
   source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.14.0"
-  volumes = [for idx, volume in var.data_volumes: {
-    label         = volume.mount_label
-    device        = volume.device_name
+  volumes = [for idx, disk in var.data_disks: {
+    label         = disk.mount_label
+    device        = disk.device_name
     filesystem    = "xfs"
-    mount_path    = volume.mount_path
+    mount_path    = disk.mount_path
     mount_options = "defaults"
   }]
 }
@@ -247,9 +256,10 @@ resource "libvirt_domain" "minio" {
   memory = var.memory
 
   dynamic "disk" {
-    for_each = local.volumes
+    for_each = local.disks
     content {
-      volume_id = disk.value
+      volume_id = disk.value.volume_id
+      block_device = disk.value.block_device
     }
   }
 

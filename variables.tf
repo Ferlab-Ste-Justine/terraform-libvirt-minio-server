@@ -1,7 +1,7 @@
 variable "name" {
   description = "Name to give to the vm."
   type        = string
-  default     = "etcd"
+  default     = "minio"
 }
 
 variable "vcpus" {
@@ -46,13 +46,19 @@ variable "volume_pools" {
   }))
 }
 
-variable "data_volumes" {
+variable "data_disks" {
   type = list(object({
-    id   = string
-    device_name = string
-    mount_label = string
-    mount_path = string
+    volume_id    = string
+    block_device = string
+    device_name  = string
+    mount_label  = string
+    mount_path   = string
   }))
+
+  validation {
+    condition     = alltrue([for vol in var.data_disks: vol.device_name != "" && vol.mount_label != "" && vol.mount_path != "" && ((vol.block_device != "" && vol.volume_id == "") || (vol.block_device == "" && vol.volume_id != ""))])
+    error_message = "Each entry in data_disks must have the following keys defined and not empty: device_name, mount_label, mount_path, block_device xor volume_id"
+  }
 }
 
 variable "libvirt_networks" {
@@ -67,6 +73,11 @@ variable "libvirt_networks" {
     dns_servers = list(string)
   }))
   default = []
+
+  validation {
+    condition     = alltrue([for net in var.libvirt_networks: net.prefix != "" && net.ip != "" && net.mac != "" && ((net.network_name != "" && net.network_id == "") || (net.network_name == "" && net.network_id != ""))])
+    error_message = "Each entry in libvirt_networks must have the following keys defined and not empty: prefix_length, ip, mac, network_name xor network_id"
+  }
 }
 
 variable "macvtap_interfaces" {
@@ -80,6 +91,11 @@ variable "macvtap_interfaces" {
     dns_servers   = list(string)
   }))
   default = []
+
+  validation {
+    condition     = alltrue([for int in var.macvtap_interfaces: int.interface != "" && int.prefix_length != "" && int.ip != "" && int.mac != ""])
+    error_message = "Each entry in macvtap_interfaces must have the following keys defined and not empty: interface, prefix_length, ip, mac"
+  }
 }
 
 variable "cloud_init_volume_pool" {
@@ -97,6 +113,11 @@ variable "ssh_admin_user" {
   description = "Pre-existing ssh admin user of the image"
   type        = string
   default     = "ubuntu"
+
+  validation {
+    condition     = var.ssh_admin_user != ""
+    error_message = "ssh_admin_user must be defined and not be empty"
+  }
 }
 
 variable "admin_user_password" { 
