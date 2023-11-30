@@ -65,7 +65,7 @@ module "minio_configs" {
     auth              = var.minio_server.auth
     load_balancer_url = var.minio_server.load_balancer_url
   }
-  volume_pools = var.volume_pools
+  volume_pools = var.server_pools
 }
 
 module "prometheus_node_exporter_configs" {

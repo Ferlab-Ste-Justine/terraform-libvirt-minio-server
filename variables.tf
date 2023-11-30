@@ -36,7 +36,7 @@ variable "minio_server" {
   })
 }
 
-variable "volume_pools" {
+variable "server_pools" {
   type = list(object({
     domain_template     = string
     servers_count_begin = number
@@ -44,6 +44,21 @@ variable "volume_pools" {
     mount_path_template = string
     mounts_count        = number
   }))
+
+  validation {
+    condition     = alltrue([for pool in var.server_pools: pool.domain_template != "" && pool.mount_path_template != ""])
+    error_message = "Each entry in server_pools require that the following fields be non-empty strings: domain_template, mount_path_template"
+  }
+
+  validation {
+    condition     = alltrue([for pool in var.server_pools: pool.servers_count_begin > 0 && pool.servers_count_end > 0 && pool.mounts_count > 0])
+    error_message = "Each entry in server_pools require that the following fields be integers greater than 0: servers_count_begin, servers_count_end, mounts_count"
+  }
+
+  validation {
+    condition     = alltrue([for pool in var.server_pools: pool.servers_count_begin >= pool.servers_count_end])
+    error_message = "Each entry in server_pools require that the servers_count_begin field be less or equal to the servers_count_end field"
+  }
 }
 
 variable "data_disks" {
