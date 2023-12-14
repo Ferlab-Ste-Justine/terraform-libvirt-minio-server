@@ -36,6 +36,65 @@ variable "minio_server" {
   })
 }
 
+variable "sse" {
+  type = object({
+    enabled = bool
+    server = object({
+      tls          = object({
+        client_cert = string
+        client_key  = string
+        server_cert = string
+        server_key  = string
+        ca_cert     = string
+      })
+      cache_expiry = string
+      audit_logs   = bool
+    })
+    vault          = object({
+      endpoint       = string
+      mount          = string
+      kv_version     = string
+      prefix         = string
+      approle        = object({
+        mount          = string
+        id             = string
+        secret         = string
+        retry_interval = string
+      })
+      ca_cert        = string
+      ping_interval  = string
+    })
+  })
+  default = {
+    enabled = false
+    server = {
+      tls          = {
+        client_cert = ""
+        client_key  = ""
+        server_cert = ""
+        server_key  = ""
+        ca_cert     = ""
+      }
+      cache_expiry = "10s"
+      audit_logs   = false
+    }
+    vault          = {
+      endpoint       = ""
+      mount          = ""
+      kv_version     = "v1"
+      prefix         = ""
+      approle        = {
+        mount          = ""
+        id             = ""
+        secret         = ""
+        retry_interval = "10s"
+      }
+      ca_cert        = ""
+      ping_interval  = "10s"
+    }
+  }
+}
+
 variable "server_pools" {
   type = list(object({
     domain_template     = string
@@ -56,7 +115,7 @@ variable "server_pools" {
   }
 
   validation {
-    condition     = alltrue([for pool in var.server_pools: pool.servers_count_begin >= pool.servers_count_end])
+    condition     = alltrue([for pool in var.server_pools: pool.servers_count_begin <= pool.servers_count_end])
     error_message = "Each entry in server_pools require that the servers_count_begin field be less or equal to the servers_count_end field"
   }
 }
@@ -90,7 +149,7 @@ variable "libvirt_networks" {
   default = []
 
   validation {
-    condition     = alltrue([for net in var.libvirt_networks: net.prefix != "" && net.ip != "" && net.mac != "" && ((net.network_name != "" && net.network_id == "") || (net.network_name == "" && net.network_id != ""))])
+    condition     = alltrue([for net in var.libvirt_networks: net.prefix_length != "" && net.ip != "" && net.mac != "" && ((net.network_name != "" && net.network_id == "") || (net.network_name == "" && net.network_id != ""))])
     error_message = "Each entry in libvirt_networks must have the following keys defined and not empty: prefix_length, ip, mac, network_name xor network_id"
   }
 }
@@ -183,6 +242,7 @@ variable "fluentbit" {
   type = object({
     enabled = bool
     minio_tag = string
+    kes_tag = string
     node_exporter_tag = string
     metrics = object({
       enabled = bool
@@ -199,6 +259,7 @@ variable "fluentbit" {
   default = {
     enabled = false
     minio_tag = ""
+    kes_tag = ""
     node_exporter_tag = ""
     metrics = {
       enabled = false
