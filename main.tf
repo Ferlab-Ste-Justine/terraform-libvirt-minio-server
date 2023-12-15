@@ -33,7 +33,7 @@ locals {
 }
 
 module "network_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.16.0"
   network_interfaces = concat(
     [for idx, libvirt_network in var.libvirt_networks: {
       ip = libvirt_network.ip
@@ -55,7 +55,7 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "./terraform-cloudinit-templates/minio"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.16.0"
   install_dependencies = var.install_dependencies
   minio_server = {
     api_port          = 9000
@@ -78,7 +78,7 @@ module "minio_configs" {
 }
 
 module "kes_configs" {
-  source = "./terraform-cloudinit-templates/minio-kes"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=v0.16.0"
   install_dependencies = var.install_dependencies
   kes_server = {
     address      = "127.0.0.1"
@@ -112,12 +112,12 @@ module "kes_configs" {
 }
 
 module "prometheus_node_exporter_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.16.0"
   install_dependencies = var.install_dependencies
 }
 
 module "chrony_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.16.0"
   install_dependencies = var.install_dependencies
   chrony = {
     servers  = var.chrony.servers
@@ -127,7 +127,7 @@ module "chrony_configs" {
 }
 
 module "fluentbit_updater_etcd_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//configurations-auto-updater?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//configurations-auto-updater?ref=v0.16.0"
   install_dependencies = var.install_dependencies
   filesystem = {
     path = "/etc/fluent-bit-customization/dynamic-config"
@@ -161,7 +161,7 @@ module "fluentbit_updater_etcd_configs" {
 }
 
 module "fluentbit_updater_git_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//gitsync?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//gitsync?ref=v0.16.0"
   install_dependencies = var.install_dependencies
   filesystem = {
     path = "/etc/fluent-bit-customization/dynamic-config"
@@ -181,7 +181,7 @@ module "fluentbit_updater_git_configs" {
 }
 
 module "fluentbit_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluent-bit?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluent-bit?ref=v0.16.0"
   install_dependencies = var.install_dependencies
   fluentbit = {
     metrics = var.fluentbit.metrics
@@ -208,7 +208,7 @@ module "fluentbit_configs" {
 }
 
 module "data_volume_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.14.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.16.0"
   volumes = [for idx, disk in var.data_disks: {
     label         = disk.mount_label
     device        = disk.device_name
