@@ -55,7 +55,7 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.14.0"
+  source = "./terraform-cloudinit-templates/minio"
   install_dependencies = var.install_dependencies
   minio_server = {
     api_port          = 9000
@@ -65,7 +65,49 @@ module "minio_configs" {
     auth              = var.minio_server.auth
     load_balancer_url = var.minio_server.load_balancer_url
   }
+  kes = var.sse.enabled ? {
+    endpoint = "127.0.0.1:7373"
+    tls = {
+      client_cert = var.sse.server.tls.client_cert
+      client_key = var.sse.server.tls.client_key
+      ca_cert = var.sse.server.tls.ca_cert
+    }
+    key = "minio"
+  } : null
   volume_pools = var.server_pools
+}
+
+module "kes_configs" {
+  source = "./terraform-cloudinit-templates/minio-kes"
+  install_dependencies = var.install_dependencies
+  kes_server = {
+    address      = "127.0.0.1"
+    tls          = {
+      server_cert = var.sse.server.tls.server_cert
+      server_key  = var.sse.server.tls.server_key
+      ca_cert     = var.sse.server.tls.ca_cert
+    }
+    clients      = [{
+      name = "minio"
+      key_prefix = "minio"
+      permissions = {
+        create   = true
+        delete   = false
+        generate = true
+        encrypt  = false
+        decrypt  = true
+      }
+      client_cert = var.sse.server.tls.client_cert
+    }]
+    cache = {
+      any    = var.sse.server.cache_expiry
+      unused = var.sse.server.cache_expiry
+    }
+    audit_logs = var.sse.server.audit_logs
+  }
+  keystore = {
+    vault = var.sse.vault
+  }
 }
 
 module "prometheus_node_exporter_configs" {
@@ -142,7 +184,7 @@ module "fluentbit_configs" {
   install_dependencies = var.install_dependencies
   fluentbit = {
     metrics = var.fluentbit.metrics
-    systemd_services = [
+    systemd_services = concat([
       {
         tag     = var.fluentbit.minio_tag
         service = "minio.service"
@@ -151,7 +193,11 @@ module "fluentbit_configs" {
         tag     = var.fluentbit.node_exporter_tag
         service = "node-exporter.service"
       }
-    ]
+    ],
+    var.sse.enabled ? [{
+      tag     = var.fluentbit.kes_tag
+      service = "kes.service"
+    }] : [])
     forward = var.fluentbit.forward
   }
   dynamic_config = {
@@ -202,6 +248,11 @@ locals {
         content      = module.data_volume_configs.configuration
       }
     ],
+    var.sse.enabled ? [{
+      filename     = "kes.cfg"
+      content_type = "text/cloud-config"
+      content      = module.kes_configs.configuration
+    }] : [],
     var.chrony.enabled ? [{
       filename     = "chrony.cfg"
       content_type = "text/cloud-config"
