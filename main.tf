@@ -91,6 +91,7 @@ module "kes_configs" {
       name = "minio"
       key_prefix = "minio"
       permissions = {
+        list_all = true
         create   = true
         delete   = false
         generate = true
