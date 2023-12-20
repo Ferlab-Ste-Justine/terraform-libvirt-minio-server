@@ -73,7 +73,15 @@ module "minio_configs" {
       ca_cert = var.sse.server.tls.ca_cert
     }
     key = "minio"
-  } : null
+  } : {
+    endpoint = ""
+    tls = {
+      client_cert = ""
+      client_key = ""
+      ca_cert = ""
+    }
+    key = ""
+  }
   volume_pools = var.server_pools
 }
 
