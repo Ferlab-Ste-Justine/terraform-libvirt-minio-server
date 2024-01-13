@@ -95,6 +95,37 @@ variable "sse" {
   }
 }
 
+variable "ferio" {
+  type = object({
+    etcd         = object({
+      config_prefix      = string
+      workspace_prefix   = string
+      endpoints          = list(string)
+      auth               = object({
+        ca_cert       = string
+        client_cert   = string
+        client_key    = string
+        username      = string
+        password      = string
+      })
+    })
+  })
+  default = {
+    etcd = {
+      config_prefix      = ""
+      workspace_prefix   = ""
+      endpoints          = []
+      auth               = {
+        ca_cert       = ""
+        client_cert   = ""
+        client_key    = ""
+        username      = ""
+        password      = ""
+      }
+    }
+  }
+}
+
 variable "server_pools" {
   type = list(object({
     domain_template     = string
@@ -103,6 +134,7 @@ variable "server_pools" {
     mount_path_template = string
     mounts_count        = number
   }))
+  default = []
 
   validation {
     condition     = alltrue([for pool in var.server_pools: pool.domain_template != "" && pool.mount_path_template != ""])
@@ -133,6 +165,11 @@ variable "data_disks" {
     condition     = alltrue([for vol in var.data_disks: vol.device_name != "" && vol.mount_label != "" && vol.mount_path != "" && ((vol.block_device != "" && vol.volume_id == "") || (vol.block_device == "" && vol.volume_id != ""))])
     error_message = "Each entry in data_disks must have the following keys defined and not empty: device_name, mount_label, mount_path, block_device xor volume_id"
   }
+}
+
+variable "minio_download_url" {
+  type = string
+  default = "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2023-09-23T03-47-50Z"
 }
 
 variable "libvirt_networks" {
@@ -243,6 +280,7 @@ variable "fluentbit" {
     enabled = bool
     minio_tag = string
     kes_tag = string
+    ferio_tag = string
     node_exporter_tag = string
     metrics = object({
       enabled = bool
@@ -260,6 +298,7 @@ variable "fluentbit" {
     enabled = false
     minio_tag = ""
     kes_tag = ""
+    ferio_tag = ""
     node_exporter_tag = ""
     metrics = {
       enabled = false
