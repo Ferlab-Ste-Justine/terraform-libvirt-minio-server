@@ -175,7 +175,7 @@ variable "data_disks" {
 
 variable "minio_download_url" {
   type = string
-  default = "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2023-09-23T03-47-50Z"
+  default = "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2023-12-23T07-19-11Z"
 }
 
 variable "libvirt_networks" {
