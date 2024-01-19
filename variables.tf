@@ -23,16 +23,17 @@ variable "volume_id" {
 
 variable "minio_server" {
   type = object({
-    tls               = object({
+    tls         = object({
       server_cert = string
       server_key  = string
       ca_cert     = string
     })
-    auth              = object({
+    auth        = object({
       root_username = string
       root_password = string
     })
-    load_balancer_url = string
+    api_url     = string
+    console_url = string
   })
 }
 

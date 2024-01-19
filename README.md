@@ -48,7 +48,9 @@ This module takes the following variables as input:
   - **auth**: Configuration for minio's root account. It takes the following parameters...
     - **root_username**: Username of the root user
     - **root_password**: Password of the root user
-  - **load_balancer_url**: Url of the external load balancer or domain pointing to all minio instances, which minio will use to self-reference itself in the dashboard.
+  - **api_url**: Fully qualified (with http protocol and port) url of an external load balancer or domain pointing to all minio instances, which the minio browser console will use to reference the minio api.
+  - **console_url**: Fully qualified (with http protocol and port) url of the external load balancer or domain pointing to all minio instances, which the minio api will use to redirect a browser request to the browser console.
+  - **console_url**: Url of the external load bala
 - **sse**: Parameters for server side encryption so that buckets can encrypted at rest. It takes the following parameters...
   - **enabled**: Whether encryption at rest is enabled.
   - **server**: Parameters for the kes proxy. It takes the following arguments...
