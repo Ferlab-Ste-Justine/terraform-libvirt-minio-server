@@ -20,12 +20,12 @@ This module takes the following variables as input:
   - **device_name**: Device name the disk will have in the vm
   - **mount_label**: Label for the disk
   - **mount_path**: Path the disk will be mounted at in the vm
-- **libvirt_network**: Parameters to connect to libvirt networks. It is an array of objects, each having the following keys:
-  - **network_id**: Id (ie, uuid) of the libvirt network to connect to (in which case **network_name** should be an empty string).
+- **libvirt_networks**: Parameters to connect to libvirt networks. It is an array of objects, each having the following keys:
   - **network_name**: Name of the libvirt network to connect to (in which case **network_id** should be an empty string).
+  - **network_id**: Id (ie, uuid) of the libvirt network to connect to (in which case **network_name** should be an empty string).
+  - **prefix_length**:  Length of the network prefix for the network the interface will be connected to. For a **192.168.1.0/24** for example, this would be **24**.
   - **ip**: Ip of interface connecting to the libvirt network.
   - **mac**: Mac address of interface connecting to the libvirt network.
-  - **prefix_length**:  Length of the network prefix for the network the interface will be connected to. For a **192.168.1.0/24** for example, this would be **24**.
   - **gateway**: Ip of the network's gateway. Usually the gateway the first assignable address of a libvirt's network.
   - **dns_servers**: Dns servers to use. Usually the dns server is first assignable address of a libvirt's network.
 - **macvtap_interfaces**: List of macvtap interfaces to connect the vm to. Note that etcd will only bind on and listen on the first interface (be it macvtap or libvirt network) on its list. Each entry in the list is a map with the following keys:
@@ -74,6 +74,8 @@ This module takes the following variables as input:
       - **retry_interval**: Retry interval if authentication to vault fails
     - **ca_cert**: CA certificate kes uses to authentify the vault server
     - **ping_interval**: Interval at which kes should ping vault to ensure it is alive
+- **prometheus_auth_type**: Authentication mode for prometheus scraping endpoints. Defaults to **jwt**.
+- **godebug_settings**: Comma-separated list of settings for environment variable `GODEBUG`. Defaults to empty.
 - **server_pools**: List of server pools. This is used for non-ferio deployments. Each entry takes the following fields:
   - **domain_template**: Template for the domains of the servers in the pool, which will be expanded with the **servers_count_begin** and **servers_count_end** values. Here is an [example](https://github.com/Ferlab-Ste-Justine/kvm-dev-orchestrations/blob/main/minio/servers.tf#L31). For more details, see distributed deployments in minio's documentation.
   - **servers_count_begin**: Numerical value that will be put in the domain template for the first valid domain in the pool.
@@ -108,7 +110,7 @@ This module takes the following variables as input:
     - **hostname**: Unique hostname identifier for the vm
     - **shared_key**: Secret shared key with the remote fluentd node to authentify the client
     - **ca_cert**: CA certificate that signed the remote fluentd node's server certificate (used to authentify it)
-**fluentbit_dynamic_config**: Optional configuration to update fluent-bit configuration dynamically either from an etcd key prefix or a path in a git repo.
+- **fluentbit_dynamic_config**: Optional configuration to update fluent-bit configuration dynamically either from an etcd key prefix or a path in a git repo.
   - **enabled**: Boolean flag to indicate whether dynamic configuration is enabled at all. If set to true, configurations will be set dynamically. The default configurations can still be referenced as needed by the dynamic configuration. They are at the following paths:
     - **Global Service Configs**: /etc/fluent-bit-customization/default-config/service.conf
     - **Default Variables**: /etc/fluent-bit-customization/default-config/default-variables.conf

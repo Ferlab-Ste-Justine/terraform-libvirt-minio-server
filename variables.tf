@@ -102,6 +102,12 @@ variable "prometheus_auth_type" {
   default     = "jwt"
 }
 
+variable "godebug_settings" {
+  description = "Comma-separated list of settings for environment variable GODEBUG"
+  type        = string
+  default     = ""
+}
+
 variable "ferio" {
   type = object({
     etcd         = object({
@@ -180,7 +186,7 @@ variable "minio_download_url" {
 }
 
 variable "libvirt_networks" {
-  description = "Parameters of libvirt network connections if a libvirt networks are used."
+  description = "Parameters of libvirt network connections if libvirt networks are used."
   type = list(object({
     network_name = string
     network_id = string
