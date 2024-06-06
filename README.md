@@ -76,6 +76,7 @@ This module takes the following variables as input:
     - **ping_interval**: Interval at which kes should ping vault to ensure it is alive
 - **prometheus_auth_type**: Authentication mode for prometheus scraping endpoints. Defaults to **jwt**.
 - **godebug_settings**: Comma-separated list of settings for environment variable `GODEBUG`. Defaults to empty.
+- **minio_os_uid**: Uid that will be assigned to the minio user for the os. Defaults to 999. This is needed to reprovision vms with pre-existing data volumes reliably without incurring delays chowing a lot of files.
 - **server_pools**: List of server pools. This is used for non-ferio deployments. Each entry takes the following fields:
   - **domain_template**: Template for the domains of the servers in the pool, which will be expanded with the **servers_count_begin** and **servers_count_end** values. Here is an [example](https://github.com/Ferlab-Ste-Justine/kvm-dev-orchestrations/blob/main/minio/servers.tf#L31). For more details, see distributed deployments in minio's documentation.
   - **servers_count_begin**: Numerical value that will be put in the domain template for the first valid domain in the pool.
