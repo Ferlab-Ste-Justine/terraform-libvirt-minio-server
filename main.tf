@@ -55,12 +55,12 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.22.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=a838240fe96d329c9b65e42eccd684c2e9ef3d77"
   install_dependencies = var.install_dependencies
   minio_server = {
     api_port          = 9000
     console_port      = 9001
-    volumes_root      = "/opt/mnt"
+    volumes_roots     = [for disk in var.data_disks: disk.mount_path]
     tls               = var.minio_server.tls
     auth              = var.minio_server.auth
     api_url           = var.minio_server.api_url
