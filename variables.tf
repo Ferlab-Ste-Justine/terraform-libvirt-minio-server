@@ -26,7 +26,7 @@ variable "minio_server" {
     tls         = object({
       server_cert = string
       server_key  = string
-      ca_cert     = string
+      ca_certs    = list(string)
     })
     auth        = object({
       root_username = string
@@ -35,6 +35,18 @@ variable "minio_server" {
     api_url     = string
     console_url = string
   })
+}
+
+variable "prometheus_auth_type" {
+  description = "Authentication mode for prometheus scraping endpoints"
+  type        = string
+  default     = "jwt"
+}
+
+variable "godebug_settings" {
+  description = "Comma-separated list of settings for environment variable GODEBUG"
+  type        = string
+  default     = ""
 }
 
 variable "sse" {
@@ -48,22 +60,22 @@ variable "sse" {
         server_key  = string
         ca_cert     = string
       })
-      cache_expiry = string
-      audit_logs   = bool
+      cache_expiry = optional(string, "10s")
+      audit_logs   = optional(bool, false)
     })
     vault          = object({
       endpoint       = string
       mount          = string
-      kv_version     = string
+      kv_version     = optional(string, "v1")
       prefix         = string
       approle        = object({
         mount          = string
         id             = string
         secret         = string
-        retry_interval = string
+        retry_interval = optional(string, "10s")
       })
       ca_cert        = string
-      ping_interval  = string
+      ping_interval  = optional(string, "10s")
     })
   })
   default = {
@@ -96,18 +108,6 @@ variable "sse" {
   }
 }
 
-variable "prometheus_auth_type" {
-  description = "Authentication mode for prometheus scraping endpoints"
-  type        = string
-  default     = "jwt"
-}
-
-variable "godebug_settings" {
-  description = "Comma-separated list of settings for environment variable GODEBUG"
-  type        = string
-  default     = ""
-}
-
 variable "minio_os_uid" {
   description = "Uid that the minio os user will run as"
   type        = number
@@ -122,10 +122,10 @@ variable "ferio" {
       endpoints          = list(string)
       auth               = object({
         ca_cert       = string
-        client_cert   = string
-        client_key    = string
-        username      = string
-        password      = string
+        client_cert   = optional(string, "")
+        client_key    = optional(string, "")
+        username      = optional(string, "")
+        password      = optional(string, "")
       })
     })
   })
@@ -194,13 +194,13 @@ variable "minio_download_url" {
 variable "libvirt_networks" {
   description = "Parameters of libvirt network connections if libvirt networks are used."
   type = list(object({
-    network_name = string
-    network_id = string
+    network_name = optional(string, "")
+    network_id = optional(string, "")
     prefix_length = string
     ip = string
     mac = string
-    gateway = string
-    dns_servers = list(string)
+    gateway = optional(string, "")
+    dns_servers = optional(list(string), [])
   }))
   default = []
 
@@ -217,8 +217,8 @@ variable "macvtap_interfaces" {
     prefix_length = string
     ip            = string
     mac           = string
-    gateway       = string
-    dns_servers   = list(string)
+    gateway       = optional(string, "")
+    dns_servers   = optional(list(string), [])
   }))
   default = []
 
@@ -236,7 +236,7 @@ variable "cloud_init_volume_pool" {
 variable "cloud_init_volume_name" {
   description = "Name of the cloud init volume"
   type        = string
-  default = ""
+  default     = ""
 }
 
 variable "ssh_admin_user" { 
@@ -301,9 +301,12 @@ variable "fluentbit" {
     kes_tag = string
     ferio_tag = string
     node_exporter_tag = string
-    metrics = object({
+    metrics = optional(object({
       enabled = bool
       port    = number
+    }), {
+      enabled = false
+      port = 0
     })
     forward = object({
       domain = string
@@ -338,7 +341,7 @@ variable "fluentbit_dynamic_config" {
   type = object({
     enabled = bool
     source  = string
-    etcd    = object({
+    etcd    = optional(object({
       key_prefix     = string
       endpoints      = list(string)
       ca_certificate = string
@@ -348,8 +351,19 @@ variable "fluentbit_dynamic_config" {
         username    = string
         password    = string
       })
+    }), {
+      key_prefix     = ""
+      endpoints      = []
+      ca_certificate = ""
+      client         = {
+        certificate = ""
+        key         = ""
+        username    = ""
+        password    = ""
+      }
+      vault_agent_secret_path = ""
     })
-    git     = object({
+    git     = optional(object({
       repo             = string
       ref              = string
       path             = string
@@ -358,6 +372,15 @@ variable "fluentbit_dynamic_config" {
         client_ssh_key         = string
         server_ssh_fingerprint = string
       })
+    }), {
+      repo             = ""
+      ref              = ""
+      path             = ""
+      trusted_gpg_keys = []
+      auth             = {
+        client_ssh_key         = ""
+        server_ssh_fingerprint = ""
+      }
     })
   })
   default = {
@@ -373,6 +396,7 @@ variable "fluentbit_dynamic_config" {
         username    = ""
         password    = ""
       }
+      vault_agent_secret_path = ""
     }
     git  = {
       repo             = ""
