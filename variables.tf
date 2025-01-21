@@ -361,7 +361,6 @@ variable "fluentbit_dynamic_config" {
         username    = ""
         password    = ""
       }
-      vault_agent_secret_path = ""
     })
     git     = optional(object({
       repo             = string
@@ -396,7 +395,6 @@ variable "fluentbit_dynamic_config" {
         username    = ""
         password    = ""
       }
-      vault_agent_secret_path = ""
     }
     git  = {
       repo             = ""
