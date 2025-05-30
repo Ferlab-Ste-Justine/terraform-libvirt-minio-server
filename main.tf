@@ -33,7 +33,7 @@ locals {
 }
 
 module "network_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.40.0"
   network_interfaces = concat(
     [for idx, libvirt_network in var.libvirt_networks: {
       ip = libvirt_network.ip
@@ -55,7 +55,7 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates//minio?ref=v0.40.0"
   install_dependencies = var.install_dependencies
   minio_server = {
     api_port          = 9000
@@ -65,20 +65,6 @@ module "minio_configs" {
     auth              = var.minio_server.auth
     api_url           = var.minio_server.api_url
     console_url       = var.minio_server.console_url
-  }
-  ferio = {
-    etcd         = {
-      config_prefix      = var.ferio.etcd.config_prefix
-      workspace_prefix   = var.ferio.etcd.workspace_prefix
-      endpoints          = var.ferio.etcd.endpoints
-      connection_timeout = "60s"
-      request_timeout    = "60s"
-      retry_interval     = "4s"
-      retries            = 15
-      auth               = var.ferio.etcd.auth
-    }
-    host         = var.name
-    log_level    = "info"
   }
   kes = var.sse.enabled ? {
     endpoint = "127.0.0.1:7373"
@@ -102,10 +88,11 @@ module "minio_configs" {
   minio_download_url = var.minio_download_url
   minio_os_uid = var.minio_os_uid
   volume_pools = var.server_pools
+  setup_minio_service = !var.ferio.enabled
 }
 
 module "kes_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=v0.40.0"
   install_dependencies = var.install_dependencies
   kes_server = {
     address      = "127.0.0.1"
@@ -138,13 +125,33 @@ module "kes_configs" {
   }
 }
 
+module "ferio_configs" {
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//ferio?ref=v0.40.0"
+  install_dependencies = var.install_dependencies
+  ferio = {
+    etcd         = {
+      config_prefix      = var.ferio.etcd.config_prefix
+      workspace_prefix   = var.ferio.etcd.workspace_prefix
+      endpoints          = var.ferio.etcd.endpoints
+      connection_timeout = "60s"
+      request_timeout    = "60s"
+      retry_interval     = "4s"
+      retries            = 15
+      auth               = var.ferio.etcd.auth
+    }
+    host         = var.name
+    log_level    = "info"
+  }
+  minio_os_uid = -1
+}
+
 module "prometheus_node_exporter_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.40.0"
   install_dependencies = var.install_dependencies
 }
 
 module "chrony_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.40.0"
   install_dependencies = var.install_dependencies
   chrony = {
     servers  = var.chrony.servers
@@ -154,7 +161,7 @@ module "chrony_configs" {
 }
 
 module "fluentbit_updater_etcd_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//configurations-auto-updater?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//configurations-auto-updater?ref=v0.40.0"
   install_dependencies = var.install_dependencies
   filesystem = {
     path = "/etc/fluent-bit-customization/dynamic-config"
@@ -194,7 +201,7 @@ module "fluentbit_updater_etcd_configs" {
 }
 
 module "fluentbit_updater_git_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//gitsync?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//gitsync?ref=v0.40.0"
   install_dependencies = var.install_dependencies
   filesystem = {
     path = "/etc/fluent-bit-customization/dynamic-config"
@@ -214,7 +221,7 @@ module "fluentbit_updater_git_configs" {
 }
 
 module "fluentbit_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluent-bit?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluent-bit?ref=v0.40.0"
   install_dependencies = var.install_dependencies
   fluentbit = {
     metrics = var.fluentbit.metrics
@@ -232,10 +239,11 @@ module "fluentbit_configs" {
       tag     = var.fluentbit.kes_tag
       service = "kes.service"
     }] : [],
-    length(var.ferio.etcd.endpoints) > 0 ? [{
+    var.ferio.enabled ? [{
       tag     = var.fluentbit.ferio_tag 
       service = "ferio.service"
     }] : [])
+    log_files = []
     forward = var.fluentbit.forward
   }
   dynamic_config = {
@@ -245,7 +253,7 @@ module "fluentbit_configs" {
 }
 
 module "data_volume_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.37.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.40.0"
   volumes = [for idx, disk in var.data_disks: {
     label         = disk.mount_label
     device        = disk.device_name
@@ -290,6 +298,11 @@ locals {
       filename     = "kes.cfg"
       content_type = "text/cloud-config"
       content      = module.kes_configs.configuration
+    }] : [],
+    var.ferio.enabled ? [{
+      filename     = "ferio.cfg"
+      content_type = "text/cloud-config"
+      content      = module.ferio_configs.configuration
     }] : [],
     var.chrony.enabled ? [{
       filename     = "chrony.cfg"

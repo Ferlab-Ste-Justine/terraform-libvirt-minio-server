@@ -51,7 +51,7 @@ variable "godebug_settings" {
 
 variable "sse" {
   type = object({
-    enabled = bool
+    enabled = optional(bool, true)
     server = object({
       tls          = object({
         client_cert = string
@@ -116,6 +116,7 @@ variable "minio_os_uid" {
 
 variable "ferio" {
   type = object({
+    enabled = optional(bool, true)
     etcd         = object({
       config_prefix      = string
       workspace_prefix   = string
@@ -130,6 +131,7 @@ variable "ferio" {
     })
   })
   default = {
+    enabled = false
     etcd = {
       config_prefix      = ""
       workspace_prefix   = ""
@@ -188,7 +190,7 @@ variable "data_disks" {
 
 variable "minio_download_url" {
   type = string
-  default = "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2023-12-23T07-19-11Z"
+  default = "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.RELEASE.2025-04-03T14-56-28Z"
 }
 
 variable "libvirt_networks" {
@@ -265,7 +267,7 @@ variable "ssh_admin_public_key" {
 variable "chrony" {
   description = "Chrony configuration for ntp. If enabled, chrony is installed and configured, else the default image ntp settings are kept"
   type        = object({
-    enabled = bool,
+    enabled = optional(bool, true)
     //https://chrony.tuxfamily.org/doc/4.2/chrony.conf.html#server
     servers = list(object({
       url = string,
@@ -296,7 +298,7 @@ variable "chrony" {
 variable "fluentbit" {
   description = "Fluent-bit configuration"
   type = object({
-    enabled = bool
+    enabled = optional(bool, true)
     minio_tag = string
     kes_tag = string
     ferio_tag = string
@@ -339,7 +341,7 @@ variable "fluentbit" {
 variable "fluentbit_dynamic_config" {
   description = "Parameters for fluent-bit dynamic config if it is enabled"
   type = object({
-    enabled = bool
+    enabled = optional(bool, true)
     source  = string
     etcd    = optional(object({
       key_prefix     = string
