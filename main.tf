@@ -55,33 +55,18 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates//minio?ref=v0.40.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=feature/minio-multi-tenants"
   install_dependencies = var.install_dependencies
-  minio_server = {
-    api_port          = 9000
-    console_port      = 9001
-    volumes_roots     = [for disk in var.data_disks: disk.mount_path]
-    tls               = var.minio_server.tls
-    auth              = var.minio_server.auth
-    api_url           = var.minio_server.api_url
-    console_url       = var.minio_server.console_url
-  }
+  minio_servers = var.minio_servers
+  volume_roots = [for disk in var.data_disks: disk.mount_path]
   kes = var.sse.enabled ? {
     endpoint = "127.0.0.1:7373"
-    tls = {
-      client_cert = var.sse.server.tls.client_cert
-      client_key = var.sse.server.tls.client_key
-      ca_cert = var.sse.server.tls.ca_cert
-    }
-    key = "minio"
+    ca_cert = var.sse.server.tls.ca_cert
+    clients = var.sse.server.clients
   } : {
     endpoint = ""
-    tls = {
-      client_cert = ""
-      client_key = ""
-      ca_cert = ""
-    }
-    key = ""
+    ca_cert = ""
+    clients = []
   }
   prometheus_auth_type = var.prometheus_auth_type
   godebug_settings = var.godebug_settings
@@ -92,7 +77,7 @@ module "minio_configs" {
 }
 
 module "kes_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=v0.40.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=feature/minio-multi-tenants"
   install_dependencies = var.install_dependencies
   kes_server = {
     address      = "127.0.0.1"
@@ -101,9 +86,9 @@ module "kes_configs" {
       server_key  = var.sse.server.tls.server_key
       ca_cert     = var.sse.server.tls.ca_cert
     }
-    clients      = [{
-      name = "minio"
-      key_prefix = "minio"
+    clients      = [for client in var.sse.server.clients: {
+      name = client.key
+      key_prefix = client.key
       permissions = {
         list_all = true
         create   = true
@@ -112,7 +97,7 @@ module "kes_configs" {
         encrypt  = false
         decrypt  = true
       }
-      client_cert = var.sse.server.tls.client_cert
+      client_cert = client.tls.client_cert
     }]
     cache = {
       any    = var.sse.server.cache_expiry

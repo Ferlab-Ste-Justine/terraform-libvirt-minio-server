@@ -21,8 +21,11 @@ variable "volume_id" {
   type        = string
 }
 
-variable "minio_server" {
-  type = object({
+variable "minio_servers" {
+  type = list(object({
+    tenant_name  = optional(string, "")
+    api_port     = optional(number, 9000)
+    console_port = optional(number, 9001)
     tls         = object({
       server_cert = string
       server_key  = string
@@ -34,7 +37,22 @@ variable "minio_server" {
     })
     api_url     = string
     console_url = string
-  })
+  }))
+
+  validation {
+    condition     = length(distinct([for minio_server in var.minio_servers: minio_server.api_port])) == length(var.minio_servers)
+    error_message = "Api ports must be unique across tenants."
+  }
+
+  validation {
+    condition     = length(distinct([for minio_server in var.minio_servers: minio_server.console_port])) == length(var.minio_servers)
+    error_message = "Console ports must be unique across tenants."
+  }
+
+  validation {
+    condition     = length(var.minio_servers) == 1 || alltrue([for minio_server in var.minio_servers: minio_server.tenant_name != ""])
+    error_message = "If more than one minio servers are defined, tenant name cannot be empty."
+  }
 }
 
 variable "prometheus_auth_type" {
@@ -53,9 +71,14 @@ variable "sse" {
   type = object({
     enabled = optional(bool, true)
     server = object({
+      clients     = list(object({
+        tls = object({
+          client_cert = string
+          client_key  = string
+        })
+        key = optional(string, "minio")
+      }))
       tls          = object({
-        client_cert = string
-        client_key  = string
         server_cert = string
         server_key  = string
         ca_cert     = string
@@ -81,9 +104,8 @@ variable "sse" {
   default = {
     enabled = false
     server = {
+      clients = []
       tls          = {
-        client_cert = ""
-        client_key  = ""
         server_cert = ""
         server_key  = ""
         ca_cert     = ""
@@ -105,6 +127,11 @@ variable "sse" {
       ca_cert        = ""
       ping_interval  = "10s"
     }
+  }
+
+  validation {
+    condition     = length(distinct([for client in var.sse.server.clients: client.key])) == length(var.sse.server.clients)
+    error_message = "The sse key needs to be different for each minio server."
   }
 }
 
