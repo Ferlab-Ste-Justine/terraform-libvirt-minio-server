@@ -24,6 +24,7 @@ variable "volume_id" {
 variable "minio_servers" {
   type = list(object({
     tenant_name  = optional(string, "")
+    migrate_to   = optional(bool, false)
     api_port     = optional(number, 9000)
     console_port = optional(number, 9001)
     tls         = object({
@@ -38,6 +39,16 @@ variable "minio_servers" {
     api_url     = string
     console_url = string
   }))
+
+  validation {
+    condition     = length([for minio_server in var.minio_servers: minio_server.migrate_to if minio_server.migrate_to]) <= 1
+    error_message = "Migration can only be set for one tenant."
+  }
+
+  validation {
+    condition     = length([for minio_server in var.minio_servers: minio_server.tenant_name if minio_server.migrate_to && minio_server.tenant_name == ""]) == 0
+    error_message = "If migration is set to true for one of the minio servers, it should have a tenant name"
+  }
 
   validation {
     condition     = length(distinct([for minio_server in var.minio_servers: minio_server.api_port])) == length(var.minio_servers)
@@ -132,6 +143,16 @@ variable "sse" {
   validation {
     condition     = length(distinct([for client in var.sse.server.clients: client.key])) == length(var.sse.server.clients)
     error_message = "The sse key needs to be different for each minio server."
+  }
+
+  validation {
+    condition     = length(distinct([for client in var.sse.server.clients: client.tls.client_cert])) == length(var.sse.server.clients)
+    error_message = "The sse client cert needs to be different for each minio server."
+  }
+
+  validation {
+    condition     = length(distinct([for client in var.sse.server.clients: client.tls.client_key])) == length(var.sse.server.clients)
+    error_message = "The sse client key needs to be different for each minio server."
   }
 }
 
