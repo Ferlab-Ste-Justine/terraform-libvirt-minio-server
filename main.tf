@@ -28,6 +28,13 @@ locals {
       block_device = disk.block_device
     }]
   )
+  ferio_minio_services = length(var.minio_servers) > 1 || var.minio_servers.0.tenant_name != "" ? [
+    for minio_server in var.minio_servers: {
+      name = "minio-${minio_server.tenant_name}.service"
+      tenant_name = minio_server.tenant_name
+      env_path = "/etc/minio/${minio_server.tenant_name}/env"
+    }
+  ]: []
   fluentbit_updater_etcd = var.fluentbit.enabled && var.fluentbit_dynamic_config.enabled && var.fluentbit_dynamic_config.source == "etcd"
   fluentbit_updater_git = var.fluentbit.enabled && var.fluentbit_dynamic_config.enabled && var.fluentbit_dynamic_config.source == "git"
 }
@@ -111,7 +118,7 @@ module "kes_configs" {
 }
 
 module "ferio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//ferio?ref=v0.40.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//ferio?ref=feature/minio-multi-tenants"
   install_dependencies = var.install_dependencies
   ferio = {
     etcd         = {
@@ -127,6 +134,7 @@ module "ferio_configs" {
     host         = var.name
     log_level    = "info"
   }
+  minio_services = local.ferio_minio_services
   minio_os_uid = -1
 }
 
