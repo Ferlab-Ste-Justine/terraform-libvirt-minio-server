@@ -87,7 +87,13 @@ variable "sse" {
           client_cert = string
           client_key  = string
         })
-        key = optional(string, "minio")
+        keys = optional(object({
+          default = string
+          access_list = list(string) 
+        }), {
+          default = "minio"
+          access_list = ["minio*"]
+        })
       }))
       tls          = object({
         server_cert = string
@@ -141,8 +147,8 @@ variable "sse" {
   }
 
   validation {
-    condition     = length(distinct([for client in var.sse.server.clients: client.key])) == length(var.sse.server.clients)
-    error_message = "The sse key needs to be different for each minio server."
+    condition     = length(distinct([for client in var.sse.server.clients: client.keys.default])) == length(var.sse.server.clients)
+    error_message = "The sse default key needs to be different for each minio server."
   }
 
   validation {
