@@ -2,7 +2,11 @@
 
 Terraform libvirt module to provision a node in a distributed minio cluster with tls, optional server side encryption integration (to encrypt data at rest), optional remote automation for cluster-wide minio binary upgrades using [ferio](https://github.com/Ferlab-Ste-Justine/ferio) and [etcd](https://github.com/Ferlab-Ste-Justine/terraform-etcd-ferio-configuration).
 
-For server side encryption integration, the currently supported topology is that each minio server has a kes proxy (that it talks to via encrypted localhost traffic on 127.0.0.1... to protect the data in the event that component other than minio is compromised on any server) that it uses to communicate with an Hashicorp Vault instance.
+For server side encryption integration, the currently supported topology is that each minio server has a kes proxy (that it talks to via encrypted localhost traffic on 127.0.0.1... to protect the data in the event that a component other than minio is compromised on any server) that it uses to communicate with an Hashicorp Vault instance.
+
+The module also supports multi-tenancy as described in the following documentation: https://github.com/minio/minio/tree/master/docs/multi-tenancy#distributed-deployment
+
+Note that because tenants as described in the above documentation are essentially disjoint minio clusters sharing the same vms and disks on different paths and ports, we would recommend to run a small number of tenants using this method and plan for vm sizing and disk capacity accordingly.
 
 # Usage
 
@@ -40,7 +44,11 @@ This module takes the following variables as input:
 - **ssh_admin_user**: Username of the default sudo user in the image. Defaults to **ubuntu**.
 - **admin_user_password**: Optional password for the default sudo user of the image. Note that this will not enable ssh password connections, but it will allow you to log into the vm from the host using the **virsh console** command.
 - **ssh_admin_public_key**: Public part of the ssh key the admin will be able to login as
-- **minio_server**: Paramaters of the minio server for handling external traffic. With the potential exception of the tls key/certificate, these parameters should be the same for all servers in a cluster. The parameters are...
+- **minio_servers**: Parameters for a list of minio services running on the vm representing different tenants. We recommend using no more than an handful of tenants that share the same vms and disks. The parameters for each entry are:
+  - **tenant_name**: Name of the tenant, which should be different for each service. Can be left out if using a single entry with no tenants.
+  - **migrate_to**: Migrate the existing minio data on the disks from a no tenant setup (at the root path of the disks) to this tenant (which will have a corresponding tenant directory) if the boolean flag is set to true. Note that this method of tenant migration is not officially supported by Minio and should be carefully tested in a production-like environment with the version of Minio you are using in production before applying it to a production environment. Also, we highly recommand that you to do a backup before doing this in production just in case...
+  - **api_port**: Api port of the minio service. Should be different for each tenant.
+  - **console_port**: Console port of the minio service. Should be different for each tenant.
   - **tls**: Tls configuration for minio. It takes the following parameters...
     - **ca_certs**: CA certificates that minio will trust. Any internal CA certificate used to sign the minio servers certificates or to sign ingress certificates in front of minio should be passed there.
     - **server_cert**: Certificate minio will use to authentify itself to clients.
@@ -48,18 +56,22 @@ This module takes the following variables as input:
   - **auth**: Configuration for minio's root account. It takes the following parameters...
     - **root_username**: Username of the root user
     - **root_password**: Password of the root user
-  - **api_url**: Fully qualified (with http protocol and port) url of an external load balancer or domain pointing to all minio instances, which the minio browser console will use to reference the minio api.
-  - **console_url**: Fully qualified (with http protocol and port) url of the external load balancer or domain pointing to all minio instances, which the minio api will use to redirect a browser request to the browser console.
-  - **console_url**: Url of the external load bala
+  - **api_url**: Fully qualified (with http protocol and port) url of an external load balancer or domain pointing to all the tenant's minio instances, which the minio browser console will use to reference the minio api.
+  - **console_url**: Fully qualified (with http protocol and port) url of the external load balancer or domain pointing to all the tenant's minio instances, which the minio api will use to redirect a browser request to the browser console.
 - **sse**: Parameters for server side encryption so that buckets can encrypted at rest. It takes the following parameters...
   - **enabled**: Whether encryption at rest is enabled.
   - **server**: Parameters for the kes proxy. It takes the following arguments...
-    - **tls**: Tls parameters for traffic between the kes server and minio over **127.0.0.1**. It takes the following parameters...
-      - **ca_cert**: CA cert used by kes and minio to authentify each other
+    - **clients**: List of parameters for the minio clients, one for each tenant. Each entry takes the following parameters:
+      - **tls**: Tls parameters that the minio client will present to kes.
+        - **client_cert**: Minio client certificate that it will present to the kes store.
+        - **client_key**: Minio client key that it will present to the kes store. Because the key is used by kes for identification, it needs to be unique for each tenant.
+      - **keys**: Specification for the keys the minio client will use in kes. It takes the following parameters...
+        - **default**: Default key the minio service will create and use in kes.
+        - **access_list**: List of keys that the admins of the minio service will be able to create and use. The list can include static key names as well as sets of keys possessing a common prefix, suffix or middle part, using the `*` character.
+    - **tls**: Server-side tls parameters for traffic between the kes server and minio over **127.0.0.1**. It takes the following parameters...
+      - **ca_cert**: CA cert used by kes to authentify minio client certs and for minio clients to authentify the kes server certs.
       - **server_key**: Private key of the kes server to authentify itself to minio.
       - **server_cert**: Certificate of the kes server to authentify itself to minio. It should include the **127.0.0.1** ip.
-      - **client_key**: Client key that minio uses to authentify itself to kes
-      - **client_cert**: Client certificate that minio uses to authentify itself to kes
     - **cache_expiry**: How long the kes proxy should cache a key fetched from Vault. See: https://min.io/docs/kes/tutorials/configuration/#cache-configuration
     - **audit_logs**: Whether to enable logs for some of the api calls kes receives or not.
   - **vault**: Configuration for kes to talk to Vault. It takes the following parameters...
