@@ -353,7 +353,10 @@ variable "fluentbit" {
   description = "Fluent-bit configuration"
   type = object({
     enabled = optional(bool, true)
-    minio_tag = string
+    minio_tags = list(object({
+      tenant_name = optional(string, "")
+      tag = string
+    }))
     kes_tag = string
     ferio_tag = string
     node_exporter_tag = string
@@ -374,7 +377,7 @@ variable "fluentbit" {
   })
   default = {
     enabled = false
-    minio_tag = ""
+    minio_tags = []
     kes_tag = ""
     ferio_tag = ""
     node_exporter_tag = ""
@@ -389,6 +392,16 @@ variable "fluentbit" {
       shared_key = ""
       ca_cert = ""
     }
+  }
+
+  validation {
+    condition     = length(distinct([for minio_tag in var.fluentbit.minio_tags: minio_tag.tenant_name])) == length(var.fluentbit.minio_tags)
+    error_message = "Tenant name entries for the minio fluentbit tags need to be unique."
+  }
+
+  validation {
+    condition     = length(distinct([for minio_tag in var.fluentbit.minio_tags: minio_tag.tag])) == length(var.fluentbit.minio_tags)
+    error_message = "Tag entries for the minio fluentbit tags need to be unique."
   }
 }
 

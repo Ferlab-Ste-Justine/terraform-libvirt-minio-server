@@ -223,14 +223,14 @@ module "fluentbit_configs" {
     metrics = var.fluentbit.metrics
     systemd_services = concat([
       {
-        tag     = var.fluentbit.minio_tag
-        service = "minio.service"
-      },
-      {
         tag     = var.fluentbit.node_exporter_tag
         service = "node-exporter.service"
       }
     ],
+    [for tenant_tag in var.fluentbit.minio_tags: {
+      tag     = tenant_tag.tag
+      service = tenant_tag.tenant_name != "" ? "minio-${tenant_tag.tenant_name}.service" : "minio.service"
+    }],
     var.sse.enabled ? [{
       tag     = var.fluentbit.kes_tag
       service = "kes.service"
