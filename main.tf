@@ -62,7 +62,7 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=feat/minio-audit"
   install_dependencies = var.install_dependencies
   minio_servers = var.minio_servers
   volume_roots = [for disk in var.data_disks: disk.mount_path]
