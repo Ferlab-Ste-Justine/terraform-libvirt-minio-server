@@ -43,12 +43,18 @@ variable "minio_servers" {
       endpoint    = optional(string, "")
       auth_token  = optional(string, "")
       queue_dir   = optional(string, "")
-      audit_id    = optional(string, "fb")
+      audit_id    = optional(string, "")
       queue_size  = optional(string, "100000")
       client_cert = optional(string, "")
       client_key  = optional(string, "")
     }), {
-      enable = false, endpoint = "", auth_token = "", queue_dir = "", queue_size = "100000", client_cert = "", client_key = ""
+      enable      = false, 
+      endpoint    = "", 
+      auth_token  = "", 
+      queue_dir   = "", 
+      queue_size  = "100000", 
+      client_cert = "", 
+      client_key  = ""
     })
   }))
 
@@ -80,9 +86,9 @@ variable "minio_servers" {
   validation {
     condition = alltrue([
       for minio_server in var.minio_servers :
-      (!try(minio_server.audit.enable, false)) || (try(minio_server.audit.endpoint, "") != "" && try(minio_server.audit.queue_dir, "") != "")
+      (!try(minio_server.audit.enable, false)) || (try(minio_server.audit.endpoint, "") != "")
     ])
-    error_message = "When audit.enable is true, audit.endpoint and audit.queue_dir must be non-empty."
+    error_message = "When audit.enable is true, audit.endpoint must be non-empty."
   }
 
   validation {
@@ -405,13 +411,6 @@ variable "fluentbit" {
       shared_key = string
       ca_cert = string
     })
-    http_input = optional(object({
-      enabled = bool
-      listen  = string 
-      port    = number
-      tag     = string
-      path    = string
-    }))
   })
   default = {
     enabled = false
@@ -429,13 +428,6 @@ variable "fluentbit" {
       hostname = ""
       shared_key = ""
       ca_cert = ""
-    }
-    http_input = {
-      enabled = false
-      listen = ""
-      port = 0
-      tag = ""
-      path = ""
     }
   }
 

@@ -58,6 +58,15 @@ This module takes the following variables as input:
     - **root_password**: Password of the root user
   - **api_url**: Fully qualified (with http protocol and port) url of an external load balancer or domain pointing to all the tenant's minio instances, which the minio browser console will use to reference the minio api.
   - **console_url**: Fully qualified (with http protocol and port) url of the external load balancer or domain pointing to all the tenant's minio instances, which the minio api will use to redirect a browser request to the browser console.
+  - **audit**: Parameters for enabling MinIO server audit logging for this tenant. It takes the following parameters:
+    - **enable**: Whether audit logging is enabled for this tenant.
+    - **endpoint**: Fully qualified http(s) endpoint that will receive audit events.
+    - **auth_token**: Optional bearer token that will be sent in the `Authorization: Bearer <token>` header when forwarding audit logs.
+    - **queue_dir**: Local directory where MinIO will persist queued audit events. If empty, it defaults to `/var/lib/minio/audit/<tenant_name>` or `/var/lib/minio/audit/minio` when `tenant_name` is empty.
+    - **audit_id**: Identifier assigned to audit events. If empty, it defaults to `<tenant_name>` or `minio` when `tenant_name` is empty.
+    - **queue_size**: Maximum number of audit events that can be stored on disk. Defaults to **"100000"**.
+    - **client_cert**: Optional client certificate MinIO will use when sending audit events to the remote endpoint. Must be set only if **client_key** is also set.
+    - **client_key**: Optional client private key MinIO will use when sending audit events to the remote endpoint. Must be set only if **client_cert** is also set.
 - **sse**: Parameters for server side encryption so that buckets can encrypted at rest. It takes the following parameters...
   - **enabled**: Whether encryption at rest is enabled.
   - **server**: Parameters for the kes proxy. It takes the following arguments...
