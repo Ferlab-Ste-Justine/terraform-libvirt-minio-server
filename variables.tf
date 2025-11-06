@@ -27,17 +27,35 @@ variable "minio_servers" {
     migrate_to   = optional(bool, false)
     api_port     = optional(number, 9000)
     console_port = optional(number, 9001)
-    tls         = object({
+    tls = object({
       server_cert = string
       server_key  = string
       ca_certs    = list(string)
     })
-    auth        = object({
+    auth = object({
       root_username = string
       root_password = string
     })
     api_url     = string
     console_url = string
+    audit = optional(object({
+      enable      = optional(bool, false)
+      endpoint    = optional(string, "")
+      auth_token  = optional(string, "")
+      queue_dir   = optional(string, "")
+      audit_id    = optional(string, "")
+      queue_size  = optional(string, "100000")
+      client_cert = optional(string, "")
+      client_key  = optional(string, "")
+    }), {
+      enable      = false, 
+      endpoint    = "", 
+      auth_token  = "", 
+      queue_dir   = "", 
+      queue_size  = "100000", 
+      client_cert = "", 
+      client_key  = ""
+    })
   }))
 
   validation {
@@ -63,6 +81,25 @@ variable "minio_servers" {
   validation {
     condition     = length(var.minio_servers) == 1 || alltrue([for minio_server in var.minio_servers: minio_server.tenant_name != ""])
     error_message = "If more than one minio servers are defined, tenant name cannot be empty."
+  }
+
+  validation {
+    condition = alltrue([
+      for minio_server in var.minio_servers :
+      (!try(minio_server.audit.enable, false)) || (try(minio_server.audit.endpoint, "") != "")
+    ])
+    error_message = "When audit.enable is true, audit.endpoint must be non-empty."
+  }
+
+  validation {
+    condition = alltrue([
+      for minio_server in var.minio_servers :
+      (
+        (try(minio_server.audit.client_cert, "") == "" && try(minio_server.audit.client_key, "") == "") ||
+        (try(minio_server.audit.client_cert, "") != "" && try(minio_server.audit.client_key, "") != "")
+      )
+    ])
+    error_message = "audit.client_cert and audit.client_key must both be set or both be empty."
   }
 }
 

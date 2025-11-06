@@ -37,10 +37,47 @@ locals {
   ]: []
   fluentbit_updater_etcd = var.fluentbit.enabled && var.fluentbit_dynamic_config.enabled && var.fluentbit_dynamic_config.source == "etcd"
   fluentbit_updater_git = var.fluentbit.enabled && var.fluentbit_dynamic_config.enabled && var.fluentbit_dynamic_config.source == "git"
+  minio_servers_effective = [
+    for minio_server in var.minio_servers : merge(minio_server, {
+      tenant_name = try(minio_server.tenant_name, "")
+      audit = merge({
+        enable      = false,
+        endpoint    = "",
+        auth_token  = "",
+        queue_dir   = "",
+        audit_id    = "",
+        queue_size  = "100000",
+        client_cert = "",
+        client_key  = ""
+      }, try(minio_server.audit, {}), {
+        audit_id = (
+          trimspace(try(minio_server.audit.audit_id, "")) != ""
+          ? trimspace(try(minio_server.audit.audit_id, ""))
+          : (
+              trimspace(try(minio_server.tenant_name, "")) != ""
+              ? trimspace(try(minio_server.tenant_name, ""))
+              : "minio"
+            )
+        )
+        queue_dir = (
+          trimspace(try(minio_server.audit.queue_dir, "")) != ""
+          ? trimspace(try(minio_server.audit.queue_dir, ""))
+          : format(
+              "/var/lib/minio/audit/%s",
+              (
+                trimspace(try(minio_server.tenant_name, "")) != ""
+                ? trimspace(try(minio_server.tenant_name, ""))
+                : "minio"
+              )
+            )
+        )
+      })
+    })
+  ]
 }
 
 module "network_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.46.5"
   network_interfaces = concat(
     [for idx, libvirt_network in var.libvirt_networks: {
       ip = libvirt_network.ip
@@ -62,9 +99,9 @@ module "network_configs" {
 }
 
 module "minio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio?ref=v0.46.5"
   install_dependencies = var.install_dependencies
-  minio_servers = var.minio_servers
+  minio_servers = local.minio_servers_effective
   volume_roots = [for disk in var.data_disks: disk.mount_path]
   kes = var.sse.enabled ? {
     endpoint = "127.0.0.1:7373"
@@ -87,7 +124,7 @@ module "minio_configs" {
 }
 
 module "kes_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//minio-kes?ref=v0.46.5"
   install_dependencies = var.install_dependencies
   kes_server = {
     address      = "127.0.0.1"
@@ -121,7 +158,7 @@ module "kes_configs" {
 }
 
 module "ferio_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//ferio?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//ferio?ref=v0.46.5"
   install_dependencies = var.install_dependencies
   ferio = {
     etcd         = {
@@ -142,12 +179,12 @@ module "ferio_configs" {
 }
 
 module "prometheus_node_exporter_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.46.5"
   install_dependencies = var.install_dependencies
 }
 
 module "chrony_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.46.5"
   install_dependencies = var.install_dependencies
   chrony = {
     servers  = var.chrony.servers
@@ -157,7 +194,7 @@ module "chrony_configs" {
 }
 
 module "fluentbit_updater_etcd_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//configurations-auto-updater?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//configurations-auto-updater?ref=v0.46.5"
   install_dependencies = var.install_dependencies
   filesystem = {
     path = "/etc/fluent-bit-customization/dynamic-config"
@@ -197,7 +234,7 @@ module "fluentbit_updater_etcd_configs" {
 }
 
 module "fluentbit_updater_git_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//gitsync?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//gitsync?ref=v0.46.5"
   install_dependencies = var.install_dependencies
   filesystem = {
     path = "/etc/fluent-bit-customization/dynamic-config"
@@ -217,7 +254,7 @@ module "fluentbit_updater_git_configs" {
 }
 
 module "fluentbit_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluent-bit?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluent-bit?ref=v0.46.5"
   install_dependencies = var.install_dependencies
   fluentbit = {
     metrics = var.fluentbit.metrics
@@ -249,7 +286,7 @@ module "fluentbit_configs" {
 }
 
 module "data_volume_configs" {
-  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.42.0"
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//data-volumes?ref=v0.46.5"
   volumes = [for idx, disk in var.data_disks: {
     label         = disk.mount_label
     device        = disk.device_name
@@ -275,6 +312,11 @@ locals {
         )
       },
       {
+        filename     = "data_volume.cfg"
+        content_type = "text/cloud-config"
+        content      = module.data_volume_configs.configuration
+      },
+      {
         filename     = "minio.cfg"
         content_type = "text/cloud-config"
         content      = module.minio_configs.configuration
@@ -283,11 +325,6 @@ locals {
         filename     = "node_exporter.cfg"
         content_type = "text/cloud-config"
         content      = module.prometheus_node_exporter_configs.configuration
-      },
-      {
-        filename     = "data_volume.cfg"
-        content_type = "text/cloud-config"
-        content      = module.data_volume_configs.configuration
       }
     ],
     var.sse.enabled ? [{
